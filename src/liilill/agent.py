@@ -1,5 +1,6 @@
 import litellm
 import sys
+import re
 
 class Agent:
     """
@@ -93,9 +94,11 @@ class AgentResponse:
         If the stream has not yet been consumed, it is consumed internally to generate the text.
         """
         if self._full_text is None:
-            # Consume the iterator to build the full text
             self._full_text = "".join(str(chunk) for chunk in self)
-        return self._full_text
+
+        text = re.sub(r'<think>[\s\S]*?</think>', '', self._full_text).strip()
+        
+        return text
     
     @property
     def reasoning(self) -> str:
@@ -103,11 +106,20 @@ class AgentResponse:
         Returns the text enclosed between 「 and 」 markers.
         Returns empty string if markers are not found.
         """
-        text = self.output_text
-        start = text.find('「')
-        end = text.find('」')
+        # If the reasoning content is available, use it
+        if hasattr(self._api_response, 'choices') and hasattr(self._api_response.choices[0].message, 'reasoning_content'):
+            return self._api_response.choices[0].message.reasoning_content
+
+        # If not available, try to extract it from the full text
+        if self._full_text is None:
+            self._full_text = "".join(str(chunk) for chunk in self)
+
+        text = self._full_text
+        start = text.find('<think>')
+        end = text.find('</think>')
         if start != -1 and end != -1 and end > start:
-            return text[start+1:end]
+            return text[start+1:end].strip()
+        
         return ""
     
 
