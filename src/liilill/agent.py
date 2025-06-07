@@ -32,6 +32,7 @@ class Agent:
         Returns:
             AgentResponse: An object that wraps the response from the LLM.
         """
+        # 変数がNoneではない場合のみ、引数にその値を指定するようにしたいです。渡したい引数を一度辞書にまとめ、`None` の値を持つキーを排除してから、`**` を使ってlitellm.completion関数に渡すようにしてください。AI!
         response = litellm.completion(
             model=self.model_name,
             api_base=self.api_base,
