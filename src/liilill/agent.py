@@ -97,8 +97,19 @@ class AgentResponse:
             self._full_text = "".join(str(chunk) for chunk in self)
         return self._full_text
     
-    # output_textから<think>～</think>で囲まれた文字列をだけを返すreasoningプロパティを実装してください AI!
-
+    @property
+    def reasoning(self) -> str:
+        """
+        Returns the text enclosed between 「 and 」 markers.
+        Returns empty string if markers are not found.
+        """
+        text = self.output_text
+        start = text.find('「')
+        end = text.find('」')
+        if start != -1 and end != -1 and end > start:
+            return text[start+1:end]
+        return ""
+    
 
 class ResponseChunk:
     """
