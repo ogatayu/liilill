@@ -1,0 +1,15 @@
+
+[project]
+name = "liilill"
+description = "A lightweight library for LLM agents"
+version = "0.0.0"
+authors = [
+  { name="ogatayu", email="y3o4xx@gmail.com" },
+]
+license = {text = "MIT"}
+readme = "README.md"
+
+requires-python = ">=3.8"
+dependencies = [
+    "litellm>=1.47.0",
+]
