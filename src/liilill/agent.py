@@ -10,6 +10,7 @@ class Agent:
         self,
         model_name: str,
         api_base: str = None,
+        system_prompt: str = None,
         ):
         """
         Initializes the Agent.
@@ -18,9 +19,10 @@ class Agent:
             model_name (str): Specify the model name to use in litellm format.
             api_base (str, optional): The base URL for the API.
         """
-        self.model_name = model_name
-        self.api_base = api_base
-        
+        self._model_name = model_name
+        self._api_base = api_base
+        self._system_prompt = system_prompt if system_prompt else "You are a helpful assistant."
+
     def query(self, prompt: str, stream: bool = False):
         """
         Sends a query to the LLM and returns an object to handle the response.
@@ -33,15 +35,15 @@ class Agent:
             AgentResponse: An object that wraps the response from the LLM.
         """
         kwargs = {
-            "model": self.model_name,
+            "model": self._model_name,
             "stream": stream,
             "messages": [
-                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "system", "content": self._system_prompt},
                 {"role": "user", "content": prompt},
             ]
         }
-        if self.api_base is not None:
-            kwargs["api_base"] = self.api_base
+        if self._api_base is not None:
+            kwargs["api_base"] = self._api_base
         response = litellm.completion(**kwargs)
         return AgentResponse(response, stream)
 
@@ -109,7 +111,13 @@ class ResponseChunk:
         """
         sys.stdout.write(self.content)
         sys.stdout.flush()
-    
+        
+    def get(self):
+        """
+        Returns the chunk's string.
+        """
+        return self.content
+
     def __str__(self):
         """Returns the string of the chunk."""
         return self.content
