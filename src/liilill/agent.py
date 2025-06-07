@@ -96,6 +96,8 @@ class AgentResponse:
             # Consume the iterator to build the full text
             self._full_text = "".join(str(chunk) for chunk in self)
         return self._full_text
+    
+    # output_textから<think>～</think>で囲まれた文字列をだけを返すreasoningプロパティを実装してください AI!
 
 
 class ResponseChunk:
