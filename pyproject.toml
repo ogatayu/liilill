@@ -6,10 +6,14 @@ version = "0.0.0"
 authors = [
   { name="ogatayu", email="y3o4xx@gmail.com" },
 ]
-license = {text = "MIT"}
+license = "MIT"
 readme = "README.md"
 
 requires-python = ">=3.8"
 dependencies = [
     "litellm>=1.47.0",
 ]
+
+[build-system]
+requires = ["setuptools>=75.8.0", "wheel"]
+build-backend = "setuptools.build_meta"
