@@ -24,7 +24,7 @@ class Agent:
         self._api_base = api_base
         self._system_prompt = system_prompt if system_prompt else "You are a helpful assistant."
 
-    def query(self, prompt: str, stream: bool = False):
+    def query(self, prompt: str, prefix: str = None, stream: bool = False):
         """
         Sends a query to the LLM and returns an object to handle the response.
 
@@ -35,16 +35,22 @@ class Agent:
         Returns:
             AgentResponse: An object that wraps the response from the LLM.
         """
+        messages = [
+            {"role": "system", "content": self._system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+        if prefix is not None:
+            messages.append({"role": "assistant", "content": prefix})
+            
+            
         kwargs = {
             "model": self._model_name,
             "stream": stream,
-            "messages": [
-                {"role": "system", "content": self._system_prompt},
-                {"role": "user", "content": prompt},
-            ]
+            "messages": messages,
         }
         if self._api_base is not None:
             kwargs["api_base"] = self._api_base
+            
         response = litellm.completion(**kwargs)
         return AgentResponse(response, stream)
 
