@@ -23,6 +23,8 @@ class Agent:
         self._model_name = model_name
         self._api_base = api_base
         self._system_prompt = system_prompt if system_prompt else "You are a helpful assistant."
+        self._messages = []
+        self.clear_messages()
 
     def query(self, prompt: str, prefix: str = None, stream: bool = False):
         """
@@ -35,14 +37,13 @@ class Agent:
         Returns:
             AgentResponse: An object that wraps the response from the LLM.
         """
-        messages = [
-            {"role": "system", "content": self._system_prompt},
-            {"role": "user", "content": prompt},
-        ]
+        self._messages.append({"role": "user", "content": prompt})
+        
+        messages = self._messages.copy()
+        
         if prefix is not None:
             messages.append({"role": "assistant", "content": prefix})
-            
-            
+
         kwargs = {
             "model": self._model_name,
             "stream": stream,
@@ -52,8 +53,16 @@ class Agent:
             kwargs["api_base"] = self._api_base
             
         response = litellm.completion(**kwargs)
-        return AgentResponse(response, stream)
+        return AgentResponse(self, response, stream)
 
+    def get_messages(self) -> list[dict]:
+        return self._messages
+
+    def clear_messages(self) -> None:
+        """Clears all messages in the conversation."""
+        self._messages = [
+            {"role": "system", "content": self._system_prompt},
+        ]
 
     def __enter__(self):
         """Called at the beginning of a `with` statement."""
@@ -69,28 +78,33 @@ class AgentResponse:
     A class to manage the response from the LLM.
     It handles the iteration of streaming responses and holds the final text.
     """
-    def __init__(self, api_response, stream: bool):
+    def __init__(self, agent: "Agent", api_response, stream: bool):
+        self._agent = agent
         self._api_response = api_response
         self._stream = stream
         self._full_text = None
+        if not stream:
+            self._full_text = api_response.choices[0].message.content
+            self._agent._messages.append({"role": "assistant", "content": self.output_text})
 
     def __iter__(self):
         """An iterator that yields response chunks. Used in `for` loops."""
+        if self._full_text is not None:
+            # If the text has already been generated, return the full text as a single chunk
+            yield ResponseChunk(self._full_text)
+            return
+
         if self._stream:
             # Process the API response only if the stream has not been consumed yet
-            if self._full_text is None:
-                collected_chunks = []
-                for chunk in self._api_response:
-                    content = chunk['choices'][0]['delta'].content or ""
-                    collected_chunks.append(content)
-                    yield ResponseChunk(content)
-                self._full_text = "".join(collected_chunks)
-            else:
-                # If the text has already been generated (after consuming the stream), return the full text as a single chunk
-                yield ResponseChunk(self._full_text)
+            collected_chunks = []
+            for chunk in self._api_response:
+                content = chunk['choices'][0]['delta'].content or ""
+                collected_chunks.append(content)
+                yield ResponseChunk(content)
+            self._full_text = "".join(collected_chunks)
+            self._agent._messages.append({"role": "assistant", "content": self.output_text})
         else: # For non-streaming cases
-            if self._full_text is None:
-                self._full_text = self._api_response.choices[0].message.content
+            self._full_text = self._api_response.choices[0].message.content
             yield ResponseChunk(self._full_text)
     
     @property
@@ -109,7 +123,7 @@ class AgentResponse:
     @property
     def reasoning(self) -> str:
         """
-        Returns the text enclosed between 「 and 」 markers.
+        Returns the text enclosed between <think> and </think> markers.
         Returns empty string if markers are not found.
         """
         # If the reasoning content is available, use it
