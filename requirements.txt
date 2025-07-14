@@ -1,0 +1,7 @@
+# Core dependencies
+pytest
+python-dotenv
+litellm
+
+# Development dependencies
+unittest-mock
